@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using Microsoft.Azure.Cosmos;
 
@@ -43,10 +44,10 @@ namespace Company.Function
         public void SaveRating()
         {
             // The Azure Cosmos DB endpoint for running this sample.
-            string EndpointUri = "XXX";
+            string EndpointUri = "https://coachtestwar.documents.azure.com:443/";
 
             // The primary key for the Azure Cosmos account.
-            string PrimaryKey = "XXX";
+            string PrimaryKey = "WSr7UCpwrhAzF6N3MVT1n4T2mqSomOPgHCmCHkDCAiu6okCFjLauXN8c2S10Q1YYjLjAlLgIG418eBLBaGYgbw==";
 
             // The Cosmos client instance
             CosmosClient cosmosClient = new CosmosClient(EndpointUri, PrimaryKey);
@@ -60,6 +61,16 @@ namespace Company.Function
             var rating = Newtonsoft.Json.JsonConvert.SerializeObject(this);
 
             ItemResponse<Rating> ratingResponse = container.CreateItemAsync<Rating>(this, new PartitionKey(this.id)).Result;
+        }
+
+        public static Rating LoadFromDB(string ratingId)
+        {
+            return new Rating();
+        }
+
+        public static List<Rating> RatingsFromUser(string userId)
+        {
+            return new List<Rating>();
         }
     }
 }
