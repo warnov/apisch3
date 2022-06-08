@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using Microsoft.Azure.Cosmos;
 
 
 namespace Company.Function
@@ -41,7 +42,24 @@ namespace Company.Function
         //Insert in db
         public void SaveRating()
         {
+            // The Azure Cosmos DB endpoint for running this sample.
+            string EndpointUri = "XXX";
 
+            // The primary key for the Azure Cosmos account.
+            string PrimaryKey = "XXX";
+
+            // The Cosmos client instance
+            CosmosClient cosmosClient = new CosmosClient(EndpointUri, PrimaryKey);
+
+            // The database
+            Database database = cosmosClient.GetDatabase("CDBApisCh3");
+
+            // The container 
+            Container container = database.GetContainer("ratings");
+
+            var rating = Newtonsoft.Json.JsonConvert.SerializeObject(this);
+
+            ItemResponse<Rating> ratingResponse = container.CreateItemAsync<Rating>(this, new PartitionKey(this.id)).Result;
         }
     }
 }
