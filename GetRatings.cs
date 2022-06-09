@@ -7,16 +7,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Company.Function
 {
-    public static class GetRating
+    public static class GetRatings
     {
-        [FunctionName("GetRating")]
+        [FunctionName("GetRatings")]
         public static IActionResult Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
             ILogger log)
         {
-            string ratingId = req.Query["ratingId"];
-            var rating = Rating.LoadFromDB(ratingId);
-            return new OkObjectResult(rating);
+            string userId = req.Query["userId"];
+            var ratings = Rating.RatingsFromUser(userId);
+            if(ratings.Count==0)return new NotFoundResult();
+            return new OkObjectResult(ratings);
         }
     }
 }

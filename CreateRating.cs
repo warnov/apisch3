@@ -17,8 +17,6 @@ namespace Company.Function
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-
-
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             Rating data = JsonConvert.DeserializeObject<Rating>(requestBody);
 

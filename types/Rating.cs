@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using Azure.Identity;
 using Microsoft.Azure.Cosmos;
 
 
@@ -15,6 +16,7 @@ namespace Company.Function
         public string userNotes { get; set; }
         public string id { get; set; }
         public DateTime timestamp { get; set; }
+
 
         public bool Validate()
         {
@@ -39,38 +41,67 @@ namespace Company.Function
             timestamp = DateTime.UtcNow;
         }
 
+        private static Container RatingsContainer
+        {
+            get
+            {
+                // The Azure Cosmos DB endpoint for running this sample.
+                string EndpointUri = "";
+
+                // The primary key for the Azure Cosmos account.
+                string PrimaryKey = "";
+
+                // The Cosmos client instance
+                CosmosClient cosmosClient = new CosmosClient(EndpointUri, PrimaryKey);
+                /* CosmosClient cosmosClient = new CosmosClient(
+                     accountEndpoint: Environment.GetEnvironmentVariable("COSMOS_ENDPOINT", EnvironmentVariableTarget.Process),
+                     new DefaultAzureCredential()
+                 );*/
+
+                // The database
+                Database database = cosmosClient.GetDatabase("CDBApisCh3");
+
+                // The container 
+                return database.GetContainer("ratings");
+            }
+        }
 
         //Insert in db
         public void SaveRating()
         {
-            // The Azure Cosmos DB endpoint for running this sample.
-            string EndpointUri = "https://coachtestwar.documents.azure.com:443/";
-
-            // The primary key for the Azure Cosmos account.
-            string PrimaryKey = "WSr7UCpwrhAzF6N3MVT1n4T2mqSomOPgHCmCHkDCAiu6okCFjLauXN8c2S10Q1YYjLjAlLgIG418eBLBaGYgbw==";
-
-            // The Cosmos client instance
-            CosmosClient cosmosClient = new CosmosClient(EndpointUri, PrimaryKey);
-
-            // The database
-            Database database = cosmosClient.GetDatabase("CDBApisCh3");
-
-            // The container 
-            Container container = database.GetContainer("ratings");
-
             var rating = Newtonsoft.Json.JsonConvert.SerializeObject(this);
-
-            ItemResponse<Rating> ratingResponse = container.CreateItemAsync<Rating>(this, new PartitionKey(this.id)).Result;
+            ItemResponse<Rating> ratingResponse =
+            RatingsContainer.CreateItemAsync<Rating>(this, new PartitionKey(this.id)).Result;
         }
 
         public static Rating LoadFromDB(string ratingId)
         {
-            return new Rating();
+            ItemResponse<Rating> response =
+            RatingsContainer.ReadItemAsync<Rating>(
+                partitionKey: new PartitionKey(ratingId),
+                id: ratingId
+            ).Result;
+
+            return response.Resource;
         }
 
         public static List<Rating> RatingsFromUser(string userId)
         {
-            return new List<Rating>();
+            var sqlQueryText = $"SELECT * FROM c WHERE c.userId = '{userId}'";
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+            using FeedIterator<Rating> queryResultSetIterator = RatingsContainer.GetItemQueryIterator<Rating>(queryDefinition);
+            List<Rating> ratings = new List<Rating>();
+
+            while (queryResultSetIterator.HasMoreResults)
+            {
+                FeedResponse<Rating> currentResultSet = queryResultSetIterator.ReadNextAsync().Result;
+                foreach (Rating rating in currentResultSet)
+                {
+                    ratings.Add(rating);
+                }
+            }
+
+            return ratings;
         }
     }
 }
